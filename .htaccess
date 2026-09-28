@@ -1,0 +1,61 @@
+RewriteEngine On
+RewriteBase /myweb/kobostoresecommerce/
+
+# Branded 404 page (path is absolute from the document root)
+ErrorDocument 404 /myweb/kobostoresecommerce/404.php
+
+# Keep the legacy static theme files out of reach — their navigation points
+# at demo .html pages that do not exist in this project.
+RedirectMatch 404 ^/myweb/kobostoresecommerce/_legacy_static/
+
+# Never expose sensitive files and directories (.env, config, SQL dumps, vendor)
+<FilesMatch "^\.(env|git)">
+    Require all denied
+</FilesMatch>
+RedirectMatch 404 ^/myweb/kobostoresecommerce/(config|db|includes|vendor|node_modules|\.git)/
+
+# ─────────────────────────────────────────────────────────────────────────
+#  CLEAN URLs  —  /contact instead of /contact.php
+#
+#  Ordering matters:
+#   1. Send visible ".php" URLs to their extensionless form (GET only, so a
+#      form POST is never redirected — a 301 would drop the request body).
+#   2. Serve the extensionless URL from the matching .php file internally.
+#   3. Only then fall through to the api/ and admin/ front controllers.
+#
+#  api/ and admin/ are excluded from both steps: they have their own front
+#  controllers and their URLs are referenced directly by JS (API_URL).
+#  Old ".php" links stay valid — they redirect rather than 404 — so receipt
+#  emails already in customers' inboxes and the Paystack return URL keep
+#  working.
+# ─────────────────────────────────────────────────────────────────────────
+
+# 1a. index.php  →  the directory root ("/" rather than "/index")
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{REQUEST_URI} !^/myweb/kobostoresecommerce/(api|admin)/ [NC]
+RewriteCond %{THE_REQUEST} \s/+myweb/kobostoresecommerce/index\.php[\s?] [NC]
+RewriteRule ^ /myweb/kobostoresecommerce/ [R=301,L,NE]
+
+# 1b. anything-else.php  →  anything-else
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{REQUEST_URI} !^/myweb/kobostoresecommerce/(api|admin)/ [NC]
+RewriteCond %{THE_REQUEST} \s/+([^?\s]+)\.php[\s?] [NC]
+RewriteRule ^ /%1 [R=301,L,NE]
+
+# 2. Serve the extensionless request from its .php file (internal rewrite).
+RewriteCond %{REQUEST_URI} !^/myweb/kobostoresecommerce/(api|admin)/ [NC]
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.php -f
+RewriteRule ^(.+?)/?$ $1.php [L]
+
+# ─── Front controllers ───────────────────────────────────────────────────
+
+# API routes
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^api/(.*)$ api/index.php [QSA,L]
+
+# Admin routes
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^admin/(.*)$ admin/index.php [QSA,L]

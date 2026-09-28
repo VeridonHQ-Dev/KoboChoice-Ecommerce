@@ -1,0 +1,25 @@
+# Kobo Stores - Uploads hardening
+# Serve static assets normally, but never execute uploaded files as scripts.
+
+# Disable PHP execution in this directory (belt-and-suspenders vs. malicious uploads)
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+# Strip handlers so .php/.phtml/.cgi etc. are sent as plain downloads, not run
+<FilesMatch "\.(php|php3|php4|php5|php7|php8|phtml|pht|cgi|pl|py|asp|aspx|sh)$">
+    SetHandler none
+    ForceType application/octet-stream
+    Require all denied
+</FilesMatch>
+
+# Explicitly allow common image types to be served
+<FilesMatch "\.(jpe?g|png|gif|webp|svg|ico)$">
+    Require all granted
+</FilesMatch>
